@@ -337,6 +337,7 @@ async function handleSignIn() {
   errEl.style.display = 'none';
   try {
     await ensureSignedIn();
+    await getFunctionToken();  // consent + cache the Function token while popup is allowed
     document.getElementById('auth-overlay').style.display = 'none';
     updateUserDisplay();
     setStage('input');
