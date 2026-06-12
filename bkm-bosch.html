@@ -999,6 +999,7 @@ function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 // Boot
 (async function initAuth() {
+  await msalInstance.initialize();
   await msalInstance.handleRedirectPromise().catch(function(){});
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length > 0) {
