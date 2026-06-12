@@ -296,20 +296,19 @@ var MSAL_CONFIG = {
   },
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
 };
-var AZURE_ENDPOINT  = 'https://bkm-generator-resource.openai.azure.com/openai/v1';
 var AZURE_MODEL     = 'gpt-4.1';
-// LOGIN_SCOPES: Microsoft Graph openid — used only for sign-in (company-approved, no admin consent needed)
+// Replace these two values after Azure setup (see azure-function/README)
+var FUNCTION_URL    = 'https://bkm-studio-app.azurewebsites.net/api/generate';
+var FUNCTION_SCOPE  = 'api://4165ed8c-544f-4180-b3b6-674f0f8c8411/.default';
+// Graph openid scopes only — just for sign-in and user display, no Cognitive Services needed
 var LOGIN_SCOPES    = ['openid', 'profile', 'email'];
-// AZURE_SCOPE: acquired separately after login as incremental consent (not pre-registered in App Registration)
-var AZURE_SCOPE     = 'https://cognitiveservices.azure.com/.default';
 var msalInstance    = new msal.PublicClientApplication(MSAL_CONFIG);
 var currentAccount  = null;
 
 // ────────────────────────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────────────────────────
-async function getAccessToken() {
-  // Step 1: ensure an authenticated account exists (login with Graph openid scopes)
+async function ensureSignedIn() {
   var accounts = msalInstance.getAllAccounts();
   if (accounts.length === 0) {
     var loginResult = await msalInstance.loginPopup({ scopes: LOGIN_SCOPES });
@@ -317,13 +316,15 @@ async function getAccessToken() {
   } else {
     currentAccount = accounts[0];
   }
+}
 
-  // Step 2: acquire Cognitive Services token separately (incremental consent)
+async function getFunctionToken() {
+  if (!currentAccount) await ensureSignedIn();
   try {
-    var silent = await msalInstance.acquireTokenSilent({ scopes: [AZURE_SCOPE], account: currentAccount });
+    var silent = await msalInstance.acquireTokenSilent({ scopes: [FUNCTION_SCOPE], account: currentAccount });
     return silent.accessToken;
   } catch(e) {
-    var popup = await msalInstance.acquireTokenPopup({ scopes: [AZURE_SCOPE], account: currentAccount });
+    var popup = await msalInstance.acquireTokenPopup({ scopes: [FUNCTION_SCOPE], account: currentAccount });
     return popup.accessToken;
   }
 }
@@ -335,12 +336,10 @@ async function handleSignIn() {
   btn.disabled = true;
   errEl.style.display = 'none';
   try {
-    var token = await getAccessToken();
-    if (token) {
-      document.getElementById('auth-overlay').style.display = 'none';
-      updateUserDisplay();
-      setStage('input');
-    }
+    await ensureSignedIn();
+    document.getElementById('auth-overlay').style.display = 'none';
+    updateUserDisplay();
+    setStage('input');
   } catch(e) {
     errEl.textContent = e.message || 'Sign-in failed. Contact your admin.';
     errEl.style.display = '';
@@ -587,8 +586,8 @@ async function generate(){
   var promptEl=document.getElementById('promptInput');
   if(promptEl) state.prompt=promptEl.value;
   var isVideo=state.mode==='video';
-  var token;
-  try { token = await getAccessToken(); }
+  var fnToken;
+  try { fnToken = await getFunctionToken(); }
   catch(authErr) { setStage('input'); showError('Sign-in required. Please refresh and log in.'); return; }
   if(isVideo&&state.frames.length===0){showError('Please upload a video and wait for frame extraction to complete.');return;}
   if(!isVideo&&!state.prompt.trim()){showError('Please enter a process description.');return;}
@@ -641,11 +640,11 @@ Additional context: '+state.prompt:'')});
       { role: 'user',   content: content }
     ];
 
-    var res=await fetch(AZURE_ENDPOINT+'/chat/completions',{
+    var res=await fetch(FUNCTION_URL,{
       method:'POST',
       headers:{
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
+        'Authorization': 'Bearer ' + fnToken
       },
       body:JSON.stringify({
         model:       AZURE_MODEL,    // 'gpt-4.1' \u00e2\u0080\u0094 your deployment name
