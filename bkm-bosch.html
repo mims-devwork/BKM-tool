@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BKM Studio \u00e2\u0080\u0094 Bosch</title>
-<script src="assets/msal.min.js"></script>
 <script src="assets/html2canvas.min.js"></script>
 <script src="assets/docx.min.js"></script>
 <style>
@@ -234,11 +233,14 @@
 </head>
 <body>
 <div id="auth-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999">
-  <div style="background:var(--surface);border-radius:12px;padding:40px 36px;text-align:center;box-shadow:var(--shadow-md);max-width:360px;width:90%;border:1px solid var(--border)">
+  <div style="background:var(--surface);border-radius:12px;padding:40px 36px;text-align:center;box-shadow:var(--shadow-md);max-width:380px;width:90%;border:1px solid var(--border)">
     <div style="font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--bosch-red);margin-bottom:6px">BKM Studio</div>
     <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px">Welcome back</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6">Sign in with your Bosch account to access the BKM generator.</div>
-    <button id="signin-btn" onclick="handleSignIn()" style="background:var(--grad);color:#fff;border:none;border-radius:8px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;box-shadow:0 2px 8px rgba(232,25,44,.28)">Sign in with Microsoft</button>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6">Enter your details to access the BKM generator.</div>
+    <input id="login-server" type="text" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;margin-bottom:10px;box-sizing:border-box" placeholder="Server URL (e.g. http://192.168.1.10:3000)" />
+    <input id="login-email"  type="text" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;margin-bottom:10px;box-sizing:border-box" placeholder="Your email" />
+    <input id="login-pass"   type="password" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;margin-bottom:16px;box-sizing:border-box" placeholder="Password" onkeydown="if(event.key==='Enter')handleSignIn()" />
+    <button id="signin-btn" onclick="handleSignIn()" style="background:var(--grad);color:#fff;border:none;border-radius:8px;padding:13px 32px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;box-shadow:0 2px 8px rgba(232,25,44,.28)">Sign in</button>
     <p id="auth-error" style="color:var(--bosch-dark);font-size:12px;margin-top:12px;display:none;background:#fff5f5;padding:8px 12px;border-radius:6px;border:1px solid #fca5a5"></p>
   </div>
 </div>
@@ -266,7 +268,9 @@
       </div>
 
       <!-- New BKM -->
-      <div class="corp-actions">
+      <div class="corp-actions" style="gap:10px">
+        <span id="user-display" style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <button onclick="signOut()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap">Sign out</button>
         <button class="btn-new" id="newBkmBtn" style="display:none" onclick="resetAll()">\u00ef\u00bc\u008b New BKM</button>
       </div>
     </div>
@@ -288,83 +292,60 @@
 // \u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080
 //  STATE
 // \u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080\u00e2\u0094\u0080
-var MSAL_CONFIG = {
-  auth: {
-    clientId:    '7457e03d-a556-42cc-beb2-027434001ee9',
-    authority:   'https://login.microsoftonline.com/0ae51e19-07c8-4e4b-bb6d-648ee58410f4',
-    redirectUri: 'http://localhost:3000/bkm-bosch.html'
-  },
-  cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
-};
-var AZURE_MODEL     = 'gpt-4.1';
-// Replace these two values after Azure setup (see azure-function/README)
-var FUNCTION_URL    = 'https://bkm-studio-app.azurewebsites.net/api/generate';
-var FUNCTION_SCOPE  = 'api://4165ed8c-544f-4180-b3b6-674f0f8c8411/.default';
-// Graph openid scopes only — just for sign-in and user display, no Cognitive Services needed
-var LOGIN_SCOPES    = ['openid', 'profile', 'email'];
-var msalInstance    = new msal.PublicClientApplication(MSAL_CONFIG);
-var currentAccount  = null;
+var AZURE_MODEL  = 'gpt-4.1';
+var SERVER_URL   = sessionStorage.getItem('bkm_server_url') || 'http://localhost:3000';
+var currentUser  = null; // { email, token }
 
 // ────────────────────────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────────────────────────
-async function ensureSignedIn() {
-  var accounts = msalInstance.getAllAccounts();
-  if (accounts.length === 0) {
-    var loginResult = await msalInstance.loginPopup({ scopes: LOGIN_SCOPES });
-    currentAccount = loginResult.account;
-  } else {
-    currentAccount = accounts[0];
-  }
-}
-
-async function getFunctionToken() {
-  if (!currentAccount) await ensureSignedIn();
-  try {
-    var silent = await msalInstance.acquireTokenSilent({ scopes: [FUNCTION_SCOPE], account: currentAccount });
-    return silent.accessToken;
-  } catch(e) {
-    var popup = await msalInstance.acquireTokenPopup({ scopes: [FUNCTION_SCOPE], account: currentAccount });
-    return popup.accessToken;
-  }
-}
-
 async function handleSignIn() {
-  var btn = document.getElementById('signin-btn');
-  var errEl = document.getElementById('auth-error');
-  btn.textContent = 'Signing in…';
-  btn.disabled = true;
-  errEl.style.display = 'none';
+  var btn    = document.getElementById('signin-btn');
+  var errEl  = document.getElementById('auth-error');
+  var server = document.getElementById('login-server').value.trim().replace(/\/$/, '');
+  var email  = document.getElementById('login-email').value.trim();
+  var pass   = document.getElementById('login-pass').value;
+  if (!server || !email || !pass) { showAuthError('Please fill in all fields.'); return; }
+  btn.textContent = 'Signing in…'; btn.disabled = true; errEl.style.display = 'none';
   try {
-    await ensureSignedIn();
-    await getFunctionToken();  // consent + cache the Function token while popup is allowed
+    var r = await fetch(server + '/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pass })
+    });
+    if (!r.ok) { var e = await r.json().catch(function(){return{};}); throw new Error(e.error || 'Access denied.'); }
+    var data = await r.json();
+    SERVER_URL  = server;
+    currentUser = { email: data.email, token: data.token };
+    sessionStorage.setItem('bkm_server_url', server);
+    sessionStorage.setItem('bkm_token', data.token);
+    sessionStorage.setItem('bkm_email', data.email);
     document.getElementById('auth-overlay').style.display = 'none';
     updateUserDisplay();
     setStage('input');
   } catch(e) {
-    errEl.textContent = e.message || 'Sign-in failed. Contact your admin.';
-    errEl.style.display = '';
-    btn.textContent = 'Sign in with Microsoft';
-    btn.disabled = false;
+    showAuthError(e.message || 'Sign-in failed.');
+    btn.textContent = 'Sign in'; btn.disabled = false;
   }
 }
 
-async function signOut() {
-  if (currentAccount) {
-    await msalInstance.logoutPopup({ account: currentAccount }).catch(function(){});
-    currentAccount = null;
-  }
+function showAuthError(msg) {
+  var el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = '';
+}
+
+function signOut() {
+  currentUser = null;
+  sessionStorage.removeItem('bkm_token');
+  sessionStorage.removeItem('bkm_email');
   document.getElementById('auth-overlay').style.display = 'flex';
   var ud = document.getElementById('user-display');
   if (ud) ud.textContent = '';
 }
 
 function updateUserDisplay() {
-  if (currentAccount) {
-    var name = currentAccount.name || currentAccount.username;
-    var el = document.getElementById('user-display');
-    if (el) el.textContent = name;
-  }
+  var el = document.getElementById('user-display');
+  if (el && currentUser) el.textContent = currentUser.email;
 }
 
 
@@ -587,9 +568,8 @@ async function generate(){
   var promptEl=document.getElementById('promptInput');
   if(promptEl) state.prompt=promptEl.value;
   var isVideo=state.mode==='video';
-  var fnToken;
-  try { fnToken = await getFunctionToken(); }
-  catch(authErr) { setStage('input'); showError('Sign-in required. Please refresh and log in.'); return; }
+  if (!currentUser) { setStage('input'); showError('Not signed in.'); return; }
+  var fnToken = currentUser.token;
   if(isVideo&&state.frames.length===0){showError('Please upload a video and wait for frame extraction to complete.');return;}
   if(!isVideo&&!state.prompt.trim()){showError('Please enter a process description.');return;}
   showError(''); setStage('gen');
@@ -641,7 +621,7 @@ Additional context: '+state.prompt:'')});
       { role: 'user',   content: content }
     ];
 
-    var res=await fetch(FUNCTION_URL,{
+    var res=await fetch(SERVER_URL+'/generate',{
       method:'POST',
       headers:{
         'Content-Type': 'application/json',
@@ -654,7 +634,7 @@ Additional context: '+state.prompt:'')});
         messages:    openAiMessages
       })
     });
-    if(res.status===401||res.status===403){setStage('input');showError('Access denied. Contact your admin to request access.');return;}
+    if(res.status===401||res.status===403){signOut();setStage('input');showError('Session expired or access denied. Please sign in again.');return;}
     if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error(e&&e.error?e.error.message:(e.message||'HTTP '+res.status));}
     setGenStep(3);
 
@@ -1007,15 +987,18 @@ function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 // Boot
-(async function initAuth() {
-  await msalInstance.initialize();
-  await msalInstance.handleRedirectPromise().catch(function(){});
-  var accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    currentAccount = accounts[0];
+(function initAuth() {
+  var savedToken  = sessionStorage.getItem('bkm_token');
+  var savedEmail  = sessionStorage.getItem('bkm_email');
+  var savedServer = sessionStorage.getItem('bkm_server_url');
+  if (savedToken && savedEmail && savedServer) {
+    SERVER_URL  = savedServer;
+    currentUser = { email: savedEmail, token: savedToken };
     document.getElementById('auth-overlay').style.display = 'none';
     updateUserDisplay();
   }
+  var srvField = document.getElementById('login-server');
+  if (srvField && savedServer) srvField.value = savedServer;
   setStage('input');
 })();
 </script>

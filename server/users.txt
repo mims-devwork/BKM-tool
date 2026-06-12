@@ -1,0 +1,8 @@
+# BKM Studio — allowed users
+# Format: email:password  (one per line)
+# Lines starting with # are ignored.
+# This file is re-read on every login — no server restart needed when adding/removing users.
+#
+# Example:
+# ali.hassan@bosch.com:their_password
+# sara.mueller@bosch.com:another_password
