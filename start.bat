@@ -37,10 +37,10 @@ if not errorlevel 1 (
 )
 
 :: Fallback: download Python installer via PowerShell
-echo  Downloading Python 3.11 installer...
+echo  Downloading Python 3.11 installer (using system proxy if configured)...
 set INSTALLER=%TEMP%\python-installer.exe
 powershell -NoProfile -Command ^
-  "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe' -OutFile '%INSTALLER%'"
+  "$wc = New-Object System.Net.WebClient; $wc.Proxy = [System.Net.WebRequest]::GetSystemWebProxy(); $wc.Proxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials; $wc.DownloadFile('https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe', '%INSTALLER%')"
 
 if not exist "%INSTALLER%" (
     echo.
