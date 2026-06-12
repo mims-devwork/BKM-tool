@@ -9,6 +9,7 @@ const { Readable } = require('node:stream');
 const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 const OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
 const TOKEN_SECRET    = process.env.TOKEN_SECRET;
+const ADMIN_EMAIL     = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
 const PORT            = parseInt(process.env.PORT || '3000', 10);
 const SESSION_TTL_MS  = (parseInt(process.env.SESSION_TTL_HOURS || '8', 10)) * 60 * 60 * 1000;
 
@@ -219,8 +220,12 @@ app.post('/generate', async (req, res) => {
 app.get('/usage', (req, res) => {
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token || !validateSession(token)) {
+  const session = token ? validateSession(token) : null;
+  if (!session) {
     return res.status(401).json({ error: 'Unauthorized.' });
+  }
+  if (!ADMIN_EMAIL || session.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ error: 'Access denied.' });
   }
 
   const users = Object.entries(usageData).map(([email, d]) => ({
