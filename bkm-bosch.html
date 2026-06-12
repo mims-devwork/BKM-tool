@@ -296,27 +296,36 @@ var MSAL_CONFIG = {
   },
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
 };
-var AZURE_ENDPOINT = 'https://bkm-generator-resource.openai.azure.com/openai/v1';
-var AZURE_MODEL    = 'gpt-4.1';
-var AZURE_SCOPE    = 'https://cognitiveservices.azure.com/.default';
-var msalInstance   = new msal.PublicClientApplication(MSAL_CONFIG);
-var currentAccount = null;
+var AZURE_ENDPOINT  = 'https://bkm-generator-resource.openai.azure.com/openai/v1';
+var AZURE_MODEL     = 'gpt-4.1';
+// LOGIN_SCOPES: Microsoft Graph openid — used only for sign-in (company-approved, no admin consent needed)
+var LOGIN_SCOPES    = ['openid', 'profile', 'email'];
+// AZURE_SCOPE: acquired separately after login as incremental consent (not pre-registered in App Registration)
+var AZURE_SCOPE     = 'https://cognitiveservices.azure.com/.default';
+var msalInstance    = new msal.PublicClientApplication(MSAL_CONFIG);
+var currentAccount  = null;
 
 // ────────────────────────────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────────────────────────────
 async function getAccessToken() {
+  // Step 1: ensure an authenticated account exists (login with Graph openid scopes)
   var accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    try {
-      var silent = await msalInstance.acquireTokenSilent({ scopes: [AZURE_SCOPE], account: accounts[0] });
-      currentAccount = accounts[0];
-      return silent.accessToken;
-    } catch(e) {}
+  if (accounts.length === 0) {
+    var loginResult = await msalInstance.loginPopup({ scopes: LOGIN_SCOPES });
+    currentAccount = loginResult.account;
+  } else {
+    currentAccount = accounts[0];
   }
-  var popup = await msalInstance.loginPopup({ scopes: [AZURE_SCOPE] });
-  currentAccount = popup.account;
-  return popup.accessToken;
+
+  // Step 2: acquire Cognitive Services token separately (incremental consent)
+  try {
+    var silent = await msalInstance.acquireTokenSilent({ scopes: [AZURE_SCOPE], account: currentAccount });
+    return silent.accessToken;
+  } catch(e) {
+    var popup = await msalInstance.acquireTokenPopup({ scopes: [AZURE_SCOPE], account: currentAccount });
+    return popup.accessToken;
+  }
 }
 
 async function handleSignIn() {
